@@ -1,0 +1,111 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alertmanager-base-config
+  namespace: monitoring
+  labels:
+    alertconfig: default-config
+spec:
+  route:
+    receiver: 'TestPagerDuty'  # Explicitly set TestPagerDuty as the default receiver
+    groupBy: ['severity', 'team']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12h
+    routes:
+      - matchers:
+          - name: severity
+            value: critical
+            matchType: '='
+        receiver: 'TestPagerDuty'
+      - matchers:
+          - name: severity
+            value: error
+            matchType: '='
+        receiver: 'TestPagerDuty'
+  receivers:
+    - name: 'TestPagerDuty'
+      pagerdutyConfigs:
+        - serviceKey:
+            key: serviceKey
+            name: pagerduty-secret
+          sendResolved: true
+          severity: '{{ .Labels.severity }}'
+          component: '{{ .Labels.team }}'
+          description: '{{ .Annotations.summary }}'  # Map the alert title to the PagerDuty incident title
+          details:
+            - key: title
+              value: '{{ .Annotations.title }}'
+            - key: summary
+              value: '{{ .Annotations.summary }}'
+            - key: description
+              value: '{{ .Annotations.description }}'
+            - key: severity
+              value: '{{ .Labels.severity }}'
+            - key: team
+              value: '{{ .Labels.team }}'
+            - key: alertname
+              value: '{{ .Labels.alertname }}'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pagerduty-secret
+  namespace: monitoring
+type: Opaque
+data:
+  serviceKey: <base64-encoded-service-key>
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: test-alert-rules
+  namespace: monitoring
+  labels:
+    release: my-prometheus-operator
+spec:
+  groups:
+    - name: example-alerts
+      rules:
+        - alert: TestAlert
+          expr: 'up{job="node-exporter"} == 1'
+          for: 1m
+          labels:
+            severity: critical
+            team: system
+            alertname: TestAlert
+          annotations:
+            title: "Test Alert for PagerDuty"
+            summary: "This is a test alert"
+            description: "This alert is generated to test the PagerDuty integration."
+    - name: test-pod-alerts
+      rules:
+        - alert: TestPodNotReady
+          expr: |
+            kube_pod_status_ready{namespace="default", pod="test-pod"} == 0
+          for: 1m
+          labels:
+            severity: error
+          annotations:
+            summary: "Test Pod Not Ready"
+            description: "The test pod in the default namespace is not ready. Please check the pod status."
+---
+## Create a test pod that will trigger the TestPodNotReady alert
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+  namespace: default
+spec:
+  containers:
+    - name: test-container
+      image: busybox
+      command: ['sh', '-c', 'sleep 3600']
+      readinessProbe:
+        exec:
+          command:
+            - sh
+            - -c
+            - exit 1  # This command will always fail, keeping the pod in a non-ready state
+        initialDelaySeconds: 5
+        periodSeconds: 10

@@ -1,0 +1,166 @@
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm show values prometheus-community/kube-prometheus-stack > prom-values.yaml
+fullnameOverride: "prom-stack"
+
+defaultRules:
+  create: false
+  rules:
+    alertmanager: true
+    etcd: true
+    configReloaders: true
+    general: true
+    k8sContainerCpuUsageSecondsTotal: true
+    k8sContainerMemoryCache: true
+    k8sContainerMemoryRss: true
+    k8sContainerMemorySwap: true
+    k8sContainerResource: true
+    k8sContainerMemoryWorkingSetBytes: true
+    k8sPodOwner: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubeControllerManager: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: true
+    kubeSchedulerRecording: true
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+    windows: true
+
+alertmanager:
+  alertmanagerSpec:
+    alertmanagerConfiguration:
+      - name: alertmanager-base-config
+
+grafana: #Grafana is poorly handled by this operator, strongly consider running Grafana not using this and maybe deploy Grafana operator (https://github.com/grafana/grafana-operator)
+  enabled: false
+
+kubernetesServiceMonitors: #Kubernetes
+  enabled: true
+
+## Component scraping the kube api server
+##
+kubeApiServer:
+  enabled: false
+## Component scraping the kubelet
+##
+kubelet:
+  enabled: true
+## Component scraping the kubeControllerManager
+##
+kubeControllerManager:
+  enabled: false
+
+## Component scraping coreDns. Use either this or kubeDns
+##
+coreDns:
+  enabled: true
+
+## Component scraping kubeDns. Use either this or coreDns
+##
+kubeDns:
+  enabled: false # We use CoreDNS
+
+## Component scraping etcd
+##
+kubeEtcd:
+  enabled: true
+
+## Component scraping kube scheduler
+##
+kubeScheduler:
+  enabled: true
+
+## Component scraping kube proxy
+##
+kubeProxy:
+  enabled: false
+
+## Component scraping kube state metrics
+##
+kubeStateMetrics:
+  enabled: true
+
+## Configuration for kube-state-metrics subchart
+##
+kube-state-metrics:
+  namespaceOverride: ""
+
+## Deploy node exporter as a daemonset to all nodes
+##
+nodeExporter:
+  enabled: true
+
+## Configuration for prometheus-node-exporter subchart
+##
+prometheus-node-exporter:
+  namespaceOverride: ""
+  prometheus:
+    monitor:
+      enabled: true
+
+## Manages Prometheus and Alertmanager components
+##
+prometheusOperator:
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+
+    # Use certmanager to generate webhook certs
+    certManager:
+      enabled: false
+
+  kubeletService:
+    ## If true, the operator will create and maintain a service for scraping kubelets
+    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/helm/prometheus-operator/README.md
+    ##
+    enabled: true
+  serviceMonitor:
+    ## If true, create a serviceMonitor for prometheus operator
+    ##
+    selfMonitor: true
+
+## Deploy a Prometheus instance
+##
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 30d
+    ## This is required or operator will act extremely blind
+    serviceMonitorSelector:
+      matchLabels: {}
+    serviceMonitorNamespaceSelector:
+      matchLabels: {}
+    podMonitorSelector:
+      matchLabels: {}
+    podMonitorNamespaceSelector:
+      matchLabels: {}
+    probeSelector:
+      matchLabels: {}
+    probeNamespaceSelector:
+      matchLabels: {}
+    scrapeConfigSelector:
+      matchLabels: {}
+    scrapeConfigNamespaceSelector:
+      matchLabels: {}
+    ruleSelector:
+      matchLabels: {}
+    ruleNamespaceSelector:
+      matchLabels: {}
+
+thanosRuler:
+  enabled: false
