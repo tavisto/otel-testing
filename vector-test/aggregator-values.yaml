@@ -1,0 +1,49 @@
+# nameOverride -- Override the name of resources.
+nameOverride: "aggregator"
+
+# Each role is created with the following workloads:
+# Agent = DaemonSet
+# Aggregator = StatefulSet
+# Stateless-Aggregator = Deployment
+role: "Aggregator"
+
+# commonLabels -- Add additional labels to all created resources.
+commonLabels: {}
+
+# replicas -- Specify the number of Pods to create. Valid for the "Aggregator" and "Stateless-Aggregator" roles.
+replicas: 1
+
+# podAnnotations -- Set annotations on Vector Pods.
+podAnnotations: {}
+
+# podLabels -- Set labels on Vector Pods.
+podLabels:
+  vector.dev/exclude: "true"
+
+# nodeSelector -- Configure a [nodeSelector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+# for Vector Pods.
+nodeSelector: {}
+
+# customConfig -- Override Vector's default configs, if used **all** options need to be specified. This section supports
+# using helm templates to populate dynamic values. See Vector's [configuration documentation](https://vector.dev/docs/reference/configuration/)
+# for all options.
+customConfig: {}
+  # data_dir: /vector-data-dir
+  # api:
+  #   enabled: true
+  #   address: 127.0.0.1:8686
+  #   playground: false
+  # sources:
+  #   vector:
+  #     address: 0.0.0.0:6000
+  #     type: vector
+  #     version: "2"
+  # sinks:
+  #   stdout:
+  #     type: console
+  #     inputs: [vector]
+  #     encoding:
+  #       codec: json
+
+# Log level for Vector.
+logLevel: "info"

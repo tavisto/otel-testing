@@ -1,0 +1,62 @@
+# nameOverride -- Override the name of resources.
+nameOverride: "agent"
+
+# Each role is created with the following workloads:
+# Agent = DaemonSet
+# Aggregator = StatefulSet
+# Stateless-Aggregator = Deployment
+role: "Agent"
+
+# commonLabels -- Add additional labels to all created resources.
+commonLabels: {}
+
+# podAnnotations -- Set annotations on Vector Pods.
+podAnnotations: {}
+
+# podLabels -- Set labels on Vector Pods.
+podLabels:
+  vector.dev/exclude: "true"
+
+# nodeSelector -- Configure a [nodeSelector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+# for Vector Pods.
+nodeSelector: {}
+
+# customConfig -- Override Vector's default configs, if used **all** options need to be specified. This section supports
+# using helm templates to populate dynamic values. See Vector's [configuration documentation](https://vector.dev/docs/reference/configuration/)
+# for all options.
+customConfig:
+  data_dir: /vector-data-dir
+  sources:
+    kubernetes_logs:
+      type: kubernetes_logs
+  sinks:
+    stdout:
+      type: console
+      inputs: [kubernetes_logs]
+      encoding:
+        codec: json
+    elasticsearch:
+      type: elasticsearch
+      inputs: [kubernetes_logs]
+      endpoints:
+        - "https://otel-demo-es-http.default.svc.cluster.local:9200"
+      auth:
+        strategy: "basic"
+        user: "elastic"
+        password: "<replace_with_secret>"
+      tls:
+        verify_certificate: false
+        verify_hostname: false
+      mode: "data_stream"
+      bulk:
+        index: "logs-vector-%Y-%m-%d"
+        action: "create"
+        batch_timeout: 1
+
+# Log level for Vector.
+logLevel: "info"
+
+service:
+  enabled: false
+serviceHeadless:
+  enabled: false
